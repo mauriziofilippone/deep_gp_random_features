@@ -2,7 +2,7 @@
 
 This repository contains code to reproduce the results in the paper:
 
-[1] K. Cutajar, E. V. Bonilla, P. Michiardi, and M. Filippone. Practical learning of deep Gaussian processes via random Fourier features, 2016. arXiv:1610.04386. (link: https://arxiv.org/abs/1610.04386)
+[1] K. Cutajar, E. V. Bonilla, P. Michiardi, and M. Filippone. Random feature expansions for deep Gaussian processes, 2016. arXiv:1610.04386. (link: https://arxiv.org/abs/1610.04386)
 
 The code is written in python and uses the TensorFlow module; follow https://www.tensorflow.org to install TensorFlow. Our code has been tested with python 2.7 and TensorFlow 0.12.
 
@@ -29,7 +29,7 @@ The code implements variational inference for a deep Gaussian process approximat
 *   --feed_forward        Feed original inputs to each layer
 *   --q_Omega_fixed       Number of iterations to keep posterior over Omega fixed
 *   --theta_fixed         Number of iterations to keep theta fixed
-*   --learn_Omega         How to treat Omega - fixed (from the prior), optimized, or learned variationally
+*   --learn_Omega         How to treat Omega - it can be 'no' for Omega obtained from the prior with fixed randomness, 'optim' for variational with fixed randomness, or 'var' for variational
 *   --duration            Duration of job in minutes
 *   --dataset             Dataset name
 *   --fold                Dataset fold

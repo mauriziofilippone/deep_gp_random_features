@@ -66,22 +66,19 @@ class DgpRff(object):
         self.df = df * np.ones(n_layers, dtype=np.int64)
 
         ## Dimensionality of Omega matrices
-        self.d_in = np.concatenate([[d_in], self.df[:(n_layers - 1)]])
+        if self.feed_forward:
+            self.d_in = np.concatenate([[d_in], self.df[:(n_layers - 1)] + d_in])
+        else:
+            self.d_in = np.concatenate([[d_in], self.df[:(n_layers - 1)]])
         self.d_out = self.n_rff
 
         ## Dimensionality of W matrices
         if self.kernel_type == "RBF":
-            if self.feed_forward:
-                self.dhat_in = self.n_rff * 2 + d_in
-            else:
-                self.dhat_in = self.n_rff * 2
+            self.dhat_in = self.n_rff * 2
             self.dhat_out = np.concatenate([self.df[:-1], [d_out]])
 
         if self.kernel_type == "arccosine":
-            if self.feed_forward:
-                self.dhat_in = self.n_rff + d_in
-            else:
-                self.dhat_in = self.n_rff
+            self.dhat_in = self.n_rff
             self.dhat_out = np.concatenate([self.df[:-1], [d_out]])
 
         ## When Omega is learned variationally, define the right KL function and the way Omega are constructed
@@ -267,7 +264,7 @@ class DgpRff(object):
         for i in range(N_L):
             layer_times_Omega = tf.batch_matmul(self.layer[i], Omega_from_q[i])  # X * Omega
 
-            ## Apply the activation function corresponding to the chosen kernel
+            ## Apply the activation function corresponding to the chosen kernel - PHI
             if self.kernel_type == "RBF": 
                 Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / (tf.sqrt(1. * self.n_rff[i])) * tf.concat(2, [tf.cos(layer_times_Omega), tf.sin(layer_times_Omega)])
             if self.kernel_type == "arccosine": 
@@ -278,11 +275,11 @@ class DgpRff(object):
                 if self.arccosine_degree == 2:
                     Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / (tf.sqrt(1. * self.n_rff[i])) * tf.concat(2, [tf.square(tf.maximum(layer_times_Omega, 0.0))])
 
-            if self.feed_forward:
-                Phi_augmented = tf.concat(2, [self.layer[0], Phi])
-                self.layer.append(tf.batch_matmul(Phi_augmented, W_from_q[i]))  # PHI
-            else:
-                self.layer.append(tf.batch_matmul(Phi, W_from_q[i]))  # PHI
+            F = tf.batch_matmul(Phi, W_from_q[i])
+            if self.feed_forward and not (i == (N_L-1)): ## In the feed-forward case, no concatenation in the last layer so that F has the same dimensions of Y
+                F = tf.concat(2, [F, self.layer[0]])
+
+            self.layer.append(F)
 
         ## Output layer
         layer_out = self.layer[N_L]
@@ -371,7 +368,12 @@ class DgpRff(object):
             ## Present one batch of data to the DGP
             start_train_time = current_milli_time()
             batch = data.next_batch(batch_size)
-            self.session.run(train_step, feed_dict={self.X: batch[0], self.Y: batch[1], self.mc: mc_train})
+
+            monte_carlo_sample_train = mc_train
+            if (current_milli_time() - start_train_time) < (1000 * 60 * duration / 2.0): 
+                monte_carlo_sample_train = 1
+
+            self.session.run(train_step, feed_dict={self.X: batch[0], self.Y: batch[1], self.mc: monte_carlo_sample_train})
             total_train_time += current_milli_time() - start_train_time
 
             ## After reaching enough iterations with Omega fixed, unfix it
