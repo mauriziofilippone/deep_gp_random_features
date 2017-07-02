@@ -27,7 +27,7 @@ import time
 current_milli_time = lambda: int(round(time.time() * 1000))
 
 class DgpRff(object):
-    def __init__(self, likelihood_fun, num_examples, d_in, d_out, n_layers, n_rff, df, kernel_type, kernel_arccosine_degree, is_ard, feed_forward, q_Omega_fixed, theta_fixed, learn_Omega):
+    def __init__(self, likelihood_fun, num_examples, d_in, d_out, n_layers, n_rff, df, kernel_type, kernel_arccosine_degree, is_ard, feed_forward, q_Omega_fixed, theta_fixed, learn_Omega, seed):
         """
         :param likelihood_fun: Likelihood function
         :param num_examples: total number of input samples
@@ -43,6 +43,7 @@ class DgpRff(object):
         :param Omega_fixed: Whether the Omega weights should be fixed throughout the optimization
         :param theta_fixed: Whether covariance parameters should be fixed throughout the optimization
         :param learn_Omega: How to treat Omega - fixed (from the prior), optimized, or learned variationally
+        :param seed: Initial seed used for functions relying on randomness
         """
         self.likelihood = likelihood_fun
         self.kernel_type = kernel_type
@@ -54,6 +55,7 @@ class DgpRff(object):
         self.theta_fixed_flag = theta_fixed > 0
         self.learn_Omega = learn_Omega
         self.arccosine_degree = kernel_arccosine_degree
+        self.seed = seed
         
         ## These are all scalars
         self.num_examples = num_examples
@@ -93,7 +95,7 @@ class DgpRff(object):
 
             self.z_for_Omega_fixed = []
             for i in range(self.n_Omega):
-                tmp = utils.get_normal_samples(1, self.d_in[i], self.d_out[i])
+                tmp = utils.get_normal_samples(1, self.d_in[i], self.d_out[i], self.seed)
                 self.z_for_Omega_fixed.append(tf.Variable(tmp[0,:,:], trainable = False))
 
         ## When Omega is fixed, fix some standard normals throughout the execution that will be used to construct Omega
@@ -103,7 +105,7 @@ class DgpRff(object):
  
             self.z_for_Omega_fixed = []
             for i in range(self.n_Omega):
-                tmp = utils.get_normal_samples(1, self.d_in[i], self.d_out[i])
+                tmp = utils.get_normal_samples(1, self.d_in[i], self.d_out[i], self.seed)
                 self.z_for_Omega_fixed.append(tf.Variable(tmp[0,:,:], trainable = False))
 
         ## Parameters defining prior over Omega
@@ -206,7 +208,7 @@ class DgpRff(object):
     def sample_from_Omega_to_learn(self):
         Omega_from_q = []
         for i in range(self.n_Omega):
-            z = utils.get_normal_samples(self.mc, self.d_in[i], self.d_out[i])
+            z = utils.get_normal_samples(self.mc, self.d_in[i], self.d_out[i], self.seed)
             Omega_from_q.append(tf.add(tf.mul(z, tf.exp(self.log_var_Omega[i] / 2)), self.mean_Omega[i]))
 
         return Omega_from_q
@@ -238,7 +240,7 @@ class DgpRff(object):
     def sample_from_W(self):
         W_from_q = []
         for i in range(self.n_W):
-            z = utils.get_normal_samples(self.mc, self.dhat_in[i], self.dhat_out[i])
+            z = utils.get_normal_samples(self.mc, self.dhat_in[i], self.dhat_out[i], self.seed)
             W_from_q.append(tf.add(tf.mul(z, tf.exp(self.log_var_W[i] / 2)), self.mean_W[i]))
         return W_from_q
 
