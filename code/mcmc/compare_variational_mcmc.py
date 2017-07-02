@@ -22,7 +22,7 @@ from tensorflow.python.framework import dtypes
 from dataset import DataSet
 import utils
 import likelihoods
-from dgp_rff_remote import DgpRff
+from dgp_rff import DgpRff
 import tensorflow as tf
 import numpy as np
 import losses
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     dgp = DgpRff(like, data.num_examples, data.X.shape[1], data.Y.shape[1], FLAGS.nl, FLAGS.n_rff, FLAGS.df, FLAGS.kernel_type, FLAGS.kernel_arccosine_degree, FLAGS.is_ard, FLAGS.feed_forward, FLAGS.q_Omega_fixed, FLAGS.theta_fixed, FLAGS.learn_Omega, FLAGS.seed)
 
     ## Learning
-    dgp.learn(data, FLAGS.learning_rate, FLAGS.mc_train, FLAGS.batch_size, FLAGS.n_epochs, optimizer,
+    dgp.learn(data, FLAGS.learning_rate, FLAGS.mc_train, FLAGS.batch_size, FLAGS.n_iterations, optimizer,
                  FLAGS.display_step, test, FLAGS.mc_test, error_rate)
 
     ## Save various quantities of interest so that these can be plotted later
