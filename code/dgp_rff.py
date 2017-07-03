@@ -84,12 +84,12 @@ class DgpRff(object):
             self.dhat_out = np.concatenate([self.df[:-1], [d_out]])
 
         ## When Omega is learned variationally, define the right KL function and the way Omega are constructed
-        if self.learn_Omega == "var":
+        if self.learn_Omega == "var_resampled":
             self.get_kl = self.get_kl_Omega_to_learn
             self.sample_from_Omega = self.sample_from_Omega_to_learn
 
         ## When Omega is optimized, fix some standard normals throughout the execution that will be used to construct Omega
-        if self.learn_Omega == "optim":
+        if self.learn_Omega == "var_fixed":
             self.get_kl = self.get_kl_Omega_to_learn
             self.sample_from_Omega = self.sample_from_Omega_optim
 
@@ -99,7 +99,7 @@ class DgpRff(object):
                 self.z_for_Omega_fixed.append(tf.Variable(tmp[0,:,:], trainable = False))
 
         ## When Omega is fixed, fix some standard normals throughout the execution that will be used to construct Omega
-        if self.learn_Omega == "no":
+        if self.learn_Omega == "prior_fixed":
             self.get_kl = self.get_kl_Omega_fixed
             self.sample_from_Omega = self.sample_from_Omega_fixed
  
@@ -130,9 +130,9 @@ class DgpRff(object):
         self.prior_mean_W, self.log_prior_var_W = self.get_prior_W()
 
         ## Initialize posterior parameters
-        if self.learn_Omega == "var":
+        if self.learn_Omega == "var_resampled":
             self.mean_Omega, self.log_var_Omega = self.init_posterior_Omega()
-        if self.learn_Omega == "optim":
+        if self.learn_Omega == "var_fixed":
             self.mean_Omega, self.log_var_Omega = self.init_posterior_Omega()
 
         self.mean_W, self.log_var_W = self.init_posterior_W()

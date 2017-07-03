@@ -56,24 +56,24 @@ Here are a few examples to run the Deep GP model on various datasets (we assume 
 # Set the optimizer to adam with step-size of 0.01 with a batch size of 200. Use 100 Monte Carlo samples to estimate stochastic gradients (mc_train=100) and use 100 Monte Carlo samples to carry out predictions (mc_test=100).
 # Cap the running of the code to 60min and to 100K iterations. Learn Omega variationally, and fix the approximate posterior over Omega and the GP covariance parameters for the first 1000 and 4000 iterations, respectively (q_Omega_fixed=1000 and theta_fixed=4000). 
 
-python experiments/dgp_rff_regression.py —seed=12345 --dataset=concrete --fold=1 --q_Omega_fixed=1000 --theta_fixed=4000 --is_ard=True --optimizer=adam --nl=2 --learning_rate=0.01 --n_rff=100 --df=3 --batch_size=200 --mc_train=100 --mc_test=100 --n_iterations=100000 --display_step=250 --duration=60 --learn_Omega=var
+python experiments/dgp_rff_regression.py —seed=12345 --dataset=concrete --fold=1 --q_Omega_fixed=1000 --theta_fixed=4000 --is_ard=True --optimizer=adam --nl=2 --learning_rate=0.01 --n_rff=100 --df=3 --batch_size=200 --mc_train=100 --mc_test=100 --n_iterations=100000 --display_step=250 --duration=60 --learn_Omega=var_resampled
 
 ```
 
 ```
 #!bash
-# Here is an example where we fix the random Fourier features from the prior induced by the GP approximation (learn_Omega=no). 
+# Here is an example where we fix the random Fourier features from the prior induced by the GP approximation (learn_Omega=prior_fixed). 
 
-python experiments/dgp_rff_regression.py —seed=12345 --dataset=concrete --fold=1 --theta_fixed=4000 --is_ard=True --optimizer=adam --nl=2 --learning_rate=0.01 --n_rff=100 --df=3 --batch_size=200 --mc_train=100 --mc_test=100 --n_iterations=100000 --display_step=250 --duration=60 --learn_Omega=no
+python experiments/dgp_rff_regression.py —seed=12345 --dataset=concrete --fold=1 --theta_fixed=4000 --is_ard=True --optimizer=adam --nl=2 --learning_rate=0.01 --n_rff=100 --df=3 --batch_size=200 --mc_train=100 --mc_test=100 --n_iterations=100000 --display_step=250 --duration=60 --learn_Omega=prior_fixed
 
 ```
 
 ### Binary Classification ###
 ```
 #!bash
-# Same as the first example but for a classification problem (dataset=credit) and optimizing the spectral frequencies Omega (learn_Omega=optim).  
+# Same as the first example but for a classification problem (dataset=credit) and optimizing the spectral frequencies Omega (learn_Omega=var_fixed).  
 
-python experiments/dgp_rff_classification.py --seed=12345 --dataset=credit --fold=1 --q_Omega_fixed=1000 --theta_fixed=4000 --is_ard=True --optimizer=adam --nl=2 --learning_rate=0.01 --n_rff=100 --df=3 --batch_size=200 --mc_train=100 --mc_test=100 --n_iterations=100000 --display_step=250 --duration=60 --learn_Omega=optim
+python experiments/dgp_rff_classification.py --seed=12345 --dataset=credit --fold=1 --q_Omega_fixed=1000 --theta_fixed=4000 --is_ard=True --optimizer=adam --nl=2 --learning_rate=0.01 --n_rff=100 --df=3 --batch_size=200 --mc_train=100 --mc_test=100 --n_iterations=100000 --display_step=250 --duration=60 --learn_Omega=var_fixed
 
 ```
 
@@ -81,7 +81,7 @@ python experiments/dgp_rff_classification.py --seed=12345 --dataset=credit --fol
 #!bash
 # Here is an example with the arc-cosine kernel of degree 1.  
 
-python experiments/dgp_rff_classification.py —seed=12345 --dataset=credit --fold=1 --q_Omega_fixed=0 --theta_fixed=4000 --is_ard=True --optimizer=adam --nl=2 --learning_rate=0.01 --n_rff=100 --df=3 --batch_size=200 --mc_train=100 --mc_test=100 --n_iterations=100000 --display_step=250 --duration=60 --learn_Omega=optim --kernel_type=arccosine --kernel_arccosine_degree=1
+python experiments/dgp_rff_classification.py —seed=12345 --dataset=credit --fold=1 --q_Omega_fixed=0 --theta_fixed=4000 --is_ard=True --optimizer=adam --nl=2 --learning_rate=0.01 --n_rff=100 --df=3 --batch_size=200 --mc_train=100 --mc_test=100 --n_iterations=100000 --display_step=250 --duration=60 --learn_Omega=var_fixed --kernel_type=arccosine --kernel_arccosine_degree=1
 
 ```
 
@@ -92,7 +92,7 @@ python experiments/dgp_rff_classification.py —seed=12345 --dataset=credit --fo
 # Here is the MNIST example, where we use a two-layer DGP with 50 GPs in the hidden layer. We use 500 random Fourier features to approximate the GPs. 
 # In this example we use the option less_prints to avoid computing the loss on the full training data every 250 iterations.
 
-python experiments/dgp_rff_mnist.py --seed=12345 --theta_fixed=4000 --is_ard=True --optimizer=adam --nl=2 --learning_rate=0.001 --n_rff=500 --df=50 --batch_size=1000 --mc_train=100 --mc_test=50 --n_iterations=100000 --display_step=250 --less_prints=True --duration=1200 --learn_Omega=optim
+python experiments/dgp_rff_mnist.py --seed=12345 --theta_fixed=4000 --is_ard=True --optimizer=adam --nl=2 --learning_rate=0.001 --n_rff=500 --df=50 --batch_size=1000 --mc_train=100 --mc_test=50 --n_iterations=100000 --display_step=250 --less_prints=True --duration=1200 --learn_Omega=var_fixed
 
 ```
 
@@ -103,6 +103,6 @@ python experiments/dgp_rff_mnist.py --seed=12345 --theta_fixed=4000 --is_ard=Tru
 # Here is the MNIST8M example - same settings as the MNIST example
 # NOTE: Before running the code, please download the infinite MNIST dataset from here: http://leon.bottou.org/_media/projects/infimnist.tar.gz
 
-python experiments/dgp_rff_infmnist.py --seed=12345 --theta_fixed=4000 --is_ard=True --optimizer=adam --nl=2 --learning_rate=0.001 --n_rff=500 --df=50 --batch_size=1000 --mc_train=40 --mc_test=100 --n_iterations=100000 --display_step=1000 --less_prints=True --duration=1200 --learn_Omega=optim
+python experiments/dgp_rff_infmnist.py --seed=12345 --theta_fixed=4000 --is_ard=True --optimizer=adam --nl=2 --learning_rate=0.001 --n_rff=500 --df=50 --batch_size=1000 --mc_train=40 --mc_test=100 --n_iterations=100000 --display_step=1000 --less_prints=True --duration=1200 --learn_Omega=var_fixed
 
 ```
