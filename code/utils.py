@@ -73,7 +73,7 @@ def get_flags():
     flags.DEFINE_boolean('feed_forward', False, 'Feed original inputs to each layer')
     flags.DEFINE_integer('q_Omega_fixed', 0, 'Number of iterations to keep posterior over Omega fixed')
     flags.DEFINE_integer('theta_fixed', 0, 'Number of iterations to keep theta fixed')
-    flags.DEFINE_string('learn_Omega', 'no', 'How to treat Omega - fixed (from the prior), optimized, or learned variationally')
+    flags.DEFINE_string('learn_Omega', 'prior_fixed', 'How to treat Omega - fixed (from the prior), optimized, or learned variationally')
     flags.DEFINE_integer('duration', 10000000, 'Duration of job in minutes')
 
     # Flags for use in cluster experiments
