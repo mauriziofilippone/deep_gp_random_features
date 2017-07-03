@@ -33,7 +33,7 @@ def DKL_gaussian(mq, log_vq, mp, log_vp):
     return 0.5 * tf.reduce_sum(log_vp - log_vq + (tf.pow(mq - mp, 2) / tf.exp(log_vp)) + tf.exp(log_vq - log_vp) - 1)
 
 ## Draw a tensor of standard normals  
-def get_normal_samples(ns, din, dout, seed):
+def get_normal_samples(ns, din, dout):
     """"
     :param ns: Number of samples
     :param din:
@@ -42,7 +42,7 @@ def get_normal_samples(ns, din, dout, seed):
     """
     dx = np.amax(din)
     dy = np.amax(dout)
-    return tf.random_normal([ns, dx, dy], seed=seed)
+    return tf.random_normal([ns, dx, dy])
 
 ## Log-sum operation
 def logsumexp(vals, dim=None):
