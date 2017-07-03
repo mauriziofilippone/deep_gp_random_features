@@ -121,7 +121,7 @@ class DgpRff(object):
         if self.is_ard:
             self.log_theta_lengthscale = []
             for i in range(self.nl):
-                self.log_theta_lengthscale.append(tf.Variable(tf.mul(tf.ones([self.d_in[i]]), self.llscale0[i]), name="log_theta_lengthscale"))
+                self.log_theta_lengthscale.append(tf.Variable(tf.multiply(tf.ones([self.d_in[i]]), self.llscale0[i]), name="log_theta_lengthscale"))
         else:
             self.log_theta_lengthscale = tf.Variable(self.llscale0, name="log_theta_lengthscale")
         self.prior_mean_Omega, self.log_prior_var_Omega = self.get_prior_Omega(self.log_theta_lengthscale)
@@ -209,7 +209,7 @@ class DgpRff(object):
         Omega_from_q = []
         for i in range(self.n_Omega):
             z = utils.get_normal_samples(self.mc, self.d_in[i], self.d_out[i], self.seed)
-            Omega_from_q.append(tf.add(tf.mul(z, tf.exp(self.log_var_Omega[i] / 2)), self.mean_Omega[i]))
+            Omega_from_q.append(tf.add(tf.multiply(z, tf.exp(self.log_var_Omega[i] / 2)), self.mean_Omega[i]))
 
         return Omega_from_q
 
@@ -217,8 +217,8 @@ class DgpRff(object):
     def sample_from_Omega_optim(self):
         Omega_from_q = []
         for i in range(self.n_Omega):
-            z = tf.mul(self.z_for_Omega_fixed[i], tf.ones([self.mc, self.d_in[i], self.d_out[i]]))
-            Omega_from_q.append(tf.add(tf.mul(z, tf.exp(self.log_var_Omega[i] / 2)), self.mean_Omega[i]))
+            z = tf.multiply(self.z_for_Omega_fixed[i], tf.ones([self.mc, self.d_in[i], self.d_out[i]]))
+            Omega_from_q.append(tf.add(tf.multiply(z, tf.exp(self.log_var_Omega[i] / 2)), self.mean_Omega[i]))
 
         return Omega_from_q
 
@@ -226,13 +226,13 @@ class DgpRff(object):
     def sample_from_Omega_fixed(self):
         Omega_from_q = []
         for i in range(self.n_Omega):
-            z = tf.mul(self.z_for_Omega_fixed[i], tf.ones([self.mc, self.d_in[i], self.d_out[i]]))
+            z = tf.multiply(self.z_for_Omega_fixed[i], tf.ones([self.mc, self.d_in[i], self.d_out[i]]))
 
             if self.is_ard == True:
                 reshaped_log_prior_var_Omega = tf.tile(tf.reshape(self.log_prior_var_Omega[i] / 2, [self.d_in[i],1]), [1,self.d_out[i]])
-                Omega_from_q.append(tf.mul(z, tf.exp(reshaped_log_prior_var_Omega)))
+                Omega_from_q.append(tf.multiply(z, tf.exp(reshaped_log_prior_var_Omega)))
             if self.is_ard == False:
-                Omega_from_q.append(tf.add(tf.mul(z, tf.exp(self.log_prior_var_Omega[i] / 2)), self.prior_mean_Omega[i]))
+                Omega_from_q.append(tf.add(tf.multiply(z, tf.exp(self.log_prior_var_Omega[i] / 2)), self.prior_mean_Omega[i]))
 
         return Omega_from_q
 
@@ -241,7 +241,8 @@ class DgpRff(object):
         W_from_q = []
         for i in range(self.n_W):
             z = utils.get_normal_samples(self.mc, self.dhat_in[i], self.dhat_out[i], self.seed)
-            W_from_q.append(tf.add(tf.mul(z, tf.exp(self.log_var_W[i] / 2)), self.mean_W[i]))
+            self.z = z
+            W_from_q.append(tf.add(tf.multiply(z, tf.exp(self.log_var_W[i] / 2)), self.mean_W[i]))
         return W_from_q
 
     ## Returns the expected log-likelihood term in the variational lower bound 
@@ -257,29 +258,29 @@ class DgpRff(object):
         ## Each slice [i,:,:] of these tensors is one Monte Carlo realization of the value of the hidden units
         ## At layer zero we simply replicate the input matrix X self.mc times
         self.layer = []
-        self.layer.append(tf.mul(tf.ones([self.mc, batch_size, Din]), X))
+        self.layer.append(tf.multiply(tf.ones([self.mc, batch_size, Din]), X))
 
         ## Forward propagate information from the input to the output through hidden layers
         Omega_from_q  = self.sample_from_Omega()
         W_from_q = self.sample_from_W()
         # TODO: basis features should be in a different class
         for i in range(N_L):
-            layer_times_Omega = tf.batch_matmul(self.layer[i], Omega_from_q[i])  # X * Omega
+            layer_times_Omega = tf.matmul(self.layer[i], Omega_from_q[i])  # X * Omega
 
             ## Apply the activation function corresponding to the chosen kernel - PHI
             if self.kernel_type == "RBF": 
-                Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / (tf.sqrt(1. * self.n_rff[i])) * tf.concat(2, [tf.cos(layer_times_Omega), tf.sin(layer_times_Omega)])
+                Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / (tf.sqrt(1. * self.n_rff[i])) * tf.concat(values=[tf.cos(layer_times_Omega), tf.sin(layer_times_Omega)], axis=2)
             if self.kernel_type == "arccosine": 
                 if self.arccosine_degree == 0:
-                    Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / (tf.sqrt(1. * self.n_rff[i])) * tf.concat(2, [tf.sign(tf.maximum(layer_times_Omega, 0.0))])
+                    Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / (tf.sqrt(1. * self.n_rff[i])) * tf.concat(values=[tf.sign(tf.maximum(layer_times_Omega, 0.0))], axis=2)
                 if self.arccosine_degree == 1:
-                    Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / (tf.sqrt(1. * self.n_rff[i])) * tf.concat(2, [tf.maximum(layer_times_Omega, 0.0)])
+                    Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / (tf.sqrt(1. * self.n_rff[i])) * tf.concat(values=[tf.maximum(layer_times_Omega, 0.0)], axis=2)
                 if self.arccosine_degree == 2:
-                    Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / (tf.sqrt(1. * self.n_rff[i])) * tf.concat(2, [tf.square(tf.maximum(layer_times_Omega, 0.0))])
+                    Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / (tf.sqrt(1. * self.n_rff[i])) * tf.concat(values=[tf.square(tf.maximum(layer_times_Omega, 0.0))], axis=2)
 
-            F = tf.batch_matmul(Phi, W_from_q[i])
+            F = tf.matmul(Phi, W_from_q[i])
             if self.feed_forward and not (i == (N_L-1)): ## In the feed-forward case, no concatenation in the last layer so that F has the same dimensions of Y
-                F = tf.concat(2, [F, self.layer[0]])
+                F = tf.concat(values=[F, self.layer[0]], axis=2)
 
             self.layer.append(F)
 
@@ -353,6 +354,9 @@ class DgpRff(object):
         ## Set the folder where the logs are going to be written 
         # summary_writer = tf.train.SummaryWriter('logs/', self.session.graph)
         summary_writer = tf.summary.FileWriter('logs/', self.session.graph)
+
+        # random_vec, _, _, layer_out =  self.session.run(self.get_nelbo(), feed_dict={self.X: data.X, self.Y: data.Y, self.mc: mc_train})
+        # print(layer_out)
 
         if not(less_prints):
             nelbo, kl, ell, _ =  self.session.run(self.get_nelbo(), feed_dict={self.X: data.X, self.Y: data.Y, self.mc: mc_train})
