@@ -29,7 +29,7 @@ The code implements variational inference for a deep Gaussian process approximat
 *   --feed_forward        Feed original inputs to each layer
 *   --q_Omega_fixed       Number of iterations to keep posterior over Omega fixed
 *   --theta_fixed         Number of iterations to keep theta fixed
-*   --learn_Omega         How to treat Omega - it can be 'no' for Omega obtained from the prior with fixed randomness, 'optim' for variational with fixed randomness, or 'var' for variational
+*   --learn_Omega         How to treat Omega - it can be 'prior_fixed' for Omega obtained from the prior with fixed randomness, 'var_fixed' for variational with fixed randomness, or 'var_resampled' for variational with resampling
 *   --duration            Duration of job in minutes
 *   --dataset             Dataset name
 *   --fold                Dataset fold
