@@ -3,6 +3,7 @@
 This repository contains code to reproduce the results in the paper:
 
 K. Cutajar, E. V. Bonilla, P. Michiardi, and M. Filippone. Random feature expansions for deep Gaussian processes. In Proceedings of the 33rd International Conference on Machine Learning, ICML 2017, Sydney, Australia, August 6-11, 2017, 2017.
+(Link: https://arxiv.org/pdf/1610.04386.pdf)
 
 The code is written in python and uses the TensorFlow module; follow https://www.tensorflow.org to install TensorFlow. Our code has been tested with python 2.7 and TensorFlow 1.2. An equivalent version of the code compatible with TensorFlow 0.12 may be found in the 'dgp-rf_TF0.12' branch.
 
