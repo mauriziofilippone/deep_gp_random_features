@@ -27,7 +27,7 @@ import time
 current_milli_time = lambda: int(round(time.time() * 1000))
 
 class DgpRff(object):
-    def __init__(self, likelihood_fun, num_examples, d_in, d_out, n_layers, n_rff, df, kernel_type, kernel_arccosine_degree, is_ard, feed_forward, q_Omega_fixed, theta_fixed, learn_Omega):
+    def __init__(self, likelihood_fun, num_examples, d_in, d_out, n_layers, n_rff, df, kernel_type, kernel_arccosine_degree, is_ard, local_reparam, feed_forward, q_Omega_fixed, theta_fixed, learn_Omega):
         """
         :param likelihood_fun: Likelihood function
         :param num_examples: total number of input samples
@@ -43,6 +43,7 @@ class DgpRff(object):
         :param Omega_fixed: Whether the Omega weights should be fixed throughout the optimization
         :param theta_fixed: Whether covariance parameters should be fixed throughout the optimization
         :param learn_Omega: How to treat Omega - fixed (from the prior), optimized, or learned variationally
+        :param local_reparam: Whether to use the local reparameterization trick or not
         """
         self.likelihood = likelihood_fun
         self.kernel_type = kernel_type
@@ -53,6 +54,7 @@ class DgpRff(object):
         self.q_Omega_fixed_flag = q_Omega_fixed > 0
         self.theta_fixed_flag = theta_fixed > 0
         self.learn_Omega = learn_Omega
+        self.local_reparam = local_reparam
         self.arccosine_degree = kernel_arccosine_degree
 
         ## These are all scalars
@@ -62,8 +64,8 @@ class DgpRff(object):
         self.n_W = n_layers
 
         ## These are arrays to allow flexibility in the future
-        self.n_rff = n_rff * np.ones(n_layers, dtype = np.int64)
-        self.df = df * np.ones(n_layers, dtype=np.int64)
+        self.n_rff = n_rff * np.ones(n_layers, dtype = np.int32)
+        self.df = df * np.ones(n_layers, dtype=np.int32)
 
         ## Dimensionality of Omega matrices
         if self.feed_forward:
@@ -100,7 +102,7 @@ class DgpRff(object):
         if self.learn_Omega == "prior_fixed":
             self.get_kl = self.get_kl_Omega_fixed
             self.sample_from_Omega = self.sample_from_Omega_fixed
- 
+
             self.z_for_Omega_fixed = []
             for i in range(self.n_Omega):
                 tmp = utils.get_normal_samples(1, self.d_in[i], self.d_out[i])
@@ -112,9 +114,9 @@ class DgpRff(object):
         if self.is_ard:
             self.llscale0 = []
             for i in range(self.nl):
-                self.llscale0.append(tf.constant(0.5 * np.log(self.d_in[i]), tf.float32))
+                self.llscale0.append(tf.constant(0.5 * np.log(self.d_in[i]), 'float32'))
         else:
-            self.llscale0 = tf.constant(0.5 * np.log(self.d_in), tf.float32)
+            self.llscale0 = tf.constant(0.5 * np.log(self.d_in))
 
         if self.is_ard:
             self.log_theta_lengthscale = []
@@ -136,7 +138,7 @@ class DgpRff(object):
         self.mean_W, self.log_var_W = self.init_posterior_W()
 
         ## Set the number of Monte Carlo samples as a placeholder so that it can be different for training and test
-        self.mc =  tf.placeholder(tf.int32) 
+        self.mc =  tf.placeholder(tf.int32)
 
         ## Batch data placeholders
         Din = d_in
@@ -186,7 +188,7 @@ class DgpRff(object):
 
         return mean_W, log_var_W
 
-    ## Function to compute the KL divergence between priors and approximate posteriors over model parameters (Omega and W) when q(Omega) is to be learned 
+    ## Function to compute the KL divergence between priors and approximate posteriors over model parameters (Omega and W) when q(Omega) is to be learned
     def get_kl_Omega_to_learn(self):
         kl = 0
         for i in range(self.n_Omega):
@@ -195,7 +197,7 @@ class DgpRff(object):
             kl = kl + utils.DKL_gaussian(self.mean_W[i], self.log_var_W[i], self.prior_mean_W[i], self.log_prior_var_W[i])
         return kl
 
-    ## Function to compute the KL divergence between priors and approximate posteriors over model parameters (W only) when q(Omega) is not to be learned 
+    ## Function to compute the KL divergence between priors and approximate posteriors over model parameters (W only) when q(Omega) is not to be learned
     def get_kl_Omega_fixed(self):
         kl = 0
         for i in range(self.n_W):
@@ -243,7 +245,7 @@ class DgpRff(object):
             W_from_q.append(tf.add(tf.multiply(z, tf.exp(self.log_var_W[i] / 2)), self.mean_W[i]))
         return W_from_q
 
-    ## Returns the expected log-likelihood term in the variational lower bound 
+    ## Returns the expected log-likelihood term in the variational lower bound
     def get_ell(self):
         Din = self.d_in[0]
         MC = self.mc
@@ -260,23 +262,31 @@ class DgpRff(object):
 
         ## Forward propagate information from the input to the output through hidden layers
         Omega_from_q  = self.sample_from_Omega()
-        W_from_q = self.sample_from_W()
-        # TODO: basis features should be in a different class
+
         for i in range(N_L):
             layer_times_Omega = tf.matmul(self.layer[i], Omega_from_q[i])  # X * Omega
 
             ## Apply the activation function corresponding to the chosen kernel - PHI
-            if self.kernel_type == "RBF": 
-                Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / (tf.sqrt(1. * self.n_rff[i])) * tf.concat(values=[tf.cos(layer_times_Omega), tf.sin(layer_times_Omega)], axis=2)
-            if self.kernel_type == "arccosine": 
+            if self.kernel_type == "RBF":
+                Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / tf.cast(tf.sqrt(1. * self.n_rff[i]), 'float32') * tf.concat(values=[tf.cos(layer_times_Omega), tf.sin(layer_times_Omega)], axis=2)
+            if self.kernel_type == "arccosine":
                 if self.arccosine_degree == 0:
-                    Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / (tf.sqrt(1. * self.n_rff[i])) * tf.concat(values=[tf.sign(tf.maximum(layer_times_Omega, 0.0))], axis=2)
+                    Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / tf.cast(tf.sqrt(1. * self.n_rff[i]), 'float32') * tf.concat(values=[tf.sign(tf.maximum(layer_times_Omega, 0.0))], axis=2)
                 if self.arccosine_degree == 1:
-                    Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / (tf.sqrt(1. * self.n_rff[i])) * tf.concat(values=[tf.maximum(layer_times_Omega, 0.0)], axis=2)
+                    Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / tf.cast(tf.sqrt(1. * self.n_rff[i]), 'float32') * tf.concat(values=[tf.maximum(layer_times_Omega, 0.0)], axis=2)
                 if self.arccosine_degree == 2:
-                    Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / (tf.sqrt(1. * self.n_rff[i])) * tf.concat(values=[tf.square(tf.maximum(layer_times_Omega, 0.0))], axis=2)
+                    Phi = tf.exp(0.5 * self.log_theta_sigma2[i]) / tf.cast(tf.sqrt(1. * self.n_rff[i]), 'float32') * tf.concat(values=[tf.square(tf.maximum(layer_times_Omega, 0.0))], axis=2)
 
-            F = tf.matmul(Phi, W_from_q[i])
+            if self.local_reparam:
+
+                z_for_F_sample = utils.get_normal_samples(self.mc, tf.shape(Phi)[1], self.dhat_out[i])
+                mean_F = tf.tensordot(Phi, self.mean_W[i], [[2], [0]])
+                var_F = tf.tensordot(tf.pow(Phi,2), tf.exp(self.log_var_W[i]), [[2],[0]])
+                F = tf.add(tf.multiply(z_for_F_sample, tf.sqrt(var_F)), mean_F)
+            else:
+                W_from_q = self.sample_from_W()
+                F = tf.matmul(Phi, W_from_q[i])
+
             if self.feed_forward and not (i == (N_L-1)): ## In the feed-forward case, no concatenation in the last layer so that F has the same dimensions of Y
                 F = tf.concat(values=[F, self.layer[0]], axis=2)
 
@@ -349,20 +359,16 @@ class DgpRff(object):
         ## Initialize TF session
         self.session.run(init)
 
-        ## Set the folder where the logs are going to be written 
+        ## Set the folder where the logs are going to be written
         # summary_writer = tf.train.SummaryWriter('logs/', self.session.graph)
         summary_writer = tf.summary.FileWriter('logs/', self.session.graph)
-
-        # random_vec, _, _, layer_out =  self.session.run(self.get_nelbo(), feed_dict={self.X: data.X, self.Y: data.Y, self.mc: mc_train})
-        # print(layer_out)
 
         if not(less_prints):
             nelbo, kl, ell, _ =  self.session.run(self.get_nelbo(), feed_dict={self.X: data.X, self.Y: data.Y, self.mc: mc_train})
             print("Initial kl=" + repr(kl) + "  nell=" + repr(-ell) + "  nelbo=" + repr(nelbo), end=" ")
             print("  log-sigma2 =", self.session.run(self.log_theta_sigma2))
-        
+
         ## Present data to DGP n_iterations times
-        ## TODO: modify the code so that the user passes the number of epochs (number of times the whole training set is presented to the DGP)
         for iteration in range(n_iterations):
 
             ## Stop after a given budget of minutes is reached
@@ -374,7 +380,7 @@ class DgpRff(object):
             batch = data.next_batch(batch_size)
 
             monte_carlo_sample_train = mc_train
-            if (current_milli_time() - start_train_time) < (1000 * 60 * duration / 2.0): 
+            if (current_milli_time() - start_train_time) < (1000 * 60 * duration / 2.0):
                 monte_carlo_sample_train = 1
 
             self.session.run(train_step, feed_dict={self.X: batch[0], self.Y: batch[1], self.mc: monte_carlo_sample_train})

@@ -12,11 +12,11 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 ##
-## Original code by Karl Krauth 
+## Original code by Karl Krauth
 ## Changes by Kurt Cutajar, Edwin V. Bonilla, Pietro Michiardi, Maurizio Filippone
 
 import tensorflow as tf
-import likelihood
+from . import likelihood
 import utils
 
 class Softmax(likelihood.Likelihood):

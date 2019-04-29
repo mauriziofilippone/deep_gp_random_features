@@ -32,7 +32,7 @@ def DKL_gaussian(mq, log_vq, mp, log_vp):
     log_vp = tf.reshape(log_vp, (-1, 1))
     return 0.5 * tf.reduce_sum(log_vp - log_vq + (tf.pow(mq - mp, 2) / tf.exp(log_vp)) + tf.exp(log_vq - log_vp) - 1)
 
-## Draw a tensor of standard normals  
+## Draw a tensor of standard normals
 def get_normal_samples(ns, din, dout):
     """"
     :param ns: Number of samples
@@ -42,7 +42,7 @@ def get_normal_samples(ns, din, dout):
     """
     dx = np.amax(din)
     dy = np.amax(dout)
-    return tf.random_normal(shape=[ns, dx, dy])
+    return tf.random_normal(shape=[ns, dx, dy], dtype="float32")
 
 ## Log-sum operation
 def logsumexp(vals, dim=None):
@@ -70,6 +70,7 @@ def get_flags():
     flags.DEFINE_string('kernel_type', "RBF", 'arccosine')
     flags.DEFINE_integer('kernel_arccosine_degree', 1, 'Degree parameter of arc-cosine kernel')
     flags.DEFINE_boolean('is_ard', False, 'Using ARD kernel or isotropic')
+    flags.DEFINE_boolean('local_reparam', False, 'Using the local reparameterization trick')
     flags.DEFINE_boolean('feed_forward', False, 'Feed original inputs to each layer')
     flags.DEFINE_integer('q_Omega_fixed', 0, 'Number of iterations to keep posterior over Omega fixed')
     flags.DEFINE_integer('theta_fixed', 0, 'Number of iterations to keep theta fixed')

@@ -12,6 +12,6 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 
-from loss import Loss
-from zero_one_loss import ZeroOneLoss
-from mean_sq_error import RootMeanSqError
+from .loss import Loss
+from .zero_one_loss import ZeroOneLoss
+from .mean_sq_error import RootMeanSqError

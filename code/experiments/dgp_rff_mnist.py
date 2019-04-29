@@ -12,6 +12,12 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 
+import sys
+sys.path.append(".")
+
+import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
 import numpy as np
 import tensorflow as tf
 
@@ -77,19 +83,19 @@ def import_mnist():
 
     local_file = base.maybe_download(TRAIN_IMAGES, TRAIN_DIR,
                                      SOURCE_URL + TRAIN_IMAGES)
-    train_images = extract_images(open(local_file))
+    train_images = extract_images(open(local_file, 'rb'))
 
     local_file = base.maybe_download(TRAIN_LABELS, TRAIN_DIR,
                                      SOURCE_URL + TRAIN_LABELS)
-    train_labels = extract_labels(open(local_file), one_hot=ONE_HOT)
+    train_labels = extract_labels(open(local_file, 'rb'), one_hot=ONE_HOT)
 
     local_file = base.maybe_download(TEST_IMAGES, TRAIN_DIR,
                                      SOURCE_URL + TEST_IMAGES)
-    test_images = extract_images(open(local_file))
+    test_images = extract_images(open(local_file, 'rb'))
 
     local_file = base.maybe_download(TEST_LABELS, TRAIN_DIR,
                                      SOURCE_URL + TEST_LABELS)
-    test_labels = extract_labels(open(local_file), one_hot=ONE_HOT)
+    test_labels = extract_labels(open(local_file, 'rb'), one_hot=ONE_HOT)
 
     validation_images = train_images[:VALIDATION_SIZE]
     validation_labels = train_labels[:VALIDATION_SIZE]
@@ -133,7 +139,7 @@ if __name__ == '__main__':
     optimizer = utils.get_optimizer(FLAGS.optimizer, FLAGS.learning_rate)
 
     ## Main dgp object
-    dgp = DgpRff(like, data.num_examples, data.X.shape[1], data.Y.shape[1], FLAGS.nl, FLAGS.n_rff, FLAGS.df, FLAGS.kernel_type, FLAGS.kernel_arccosine_degree, FLAGS.is_ard, FLAGS.feed_forward, FLAGS.q_Omega_fixed, FLAGS.theta_fixed, FLAGS.learn_Omega)
+    dgp = DgpRff(like, data.num_examples, data.X.shape[1], data.Y.shape[1], FLAGS.nl, FLAGS.n_rff, FLAGS.df, FLAGS.kernel_type, FLAGS.kernel_arccosine_degree, FLAGS.is_ard, FLAGS.local_reparam, FLAGS.feed_forward, FLAGS.q_Omega_fixed, FLAGS.theta_fixed, FLAGS.learn_Omega)
 
     ## Learning
     dgp.learn(data, FLAGS.learning_rate, FLAGS.mc_train, FLAGS.batch_size, FLAGS.n_iterations, optimizer,

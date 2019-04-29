@@ -12,12 +12,12 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 ##
-## Original code by Karl Krauth 
+## Original code by Karl Krauth
 ## Changes by Kurt Cutajar, Edwin V. Bonilla, Pietro Michiardi, Maurizio Filippone
 
 import tensorflow as tf
 
-import likelihood
+from . import likelihood
 import utils
 
 
@@ -34,4 +34,3 @@ class Gaussian(likelihood.Likelihood):
     def predict(self, latent_val):
         # std = tf.exp(self.log_var / 2.0)
         return latent_val# + std * tf.random_normal([1, tf.shape(latent_val)[1], 1])
-

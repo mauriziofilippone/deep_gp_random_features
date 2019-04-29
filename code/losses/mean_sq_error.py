@@ -13,7 +13,7 @@
 ## limitations under the License.
 
 import numpy as np
-import loss
+from . import loss
 
 class RootMeanSqError(loss.Loss):
     def __init__(self, dout):

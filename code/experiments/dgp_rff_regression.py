@@ -12,6 +12,9 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 
+import sys
+sys.path.append(".")
+
 import numpy as np
 
 from tensorflow.contrib.learn.python.learn.datasets import base
@@ -59,7 +62,7 @@ if __name__ == '__main__':
     optimizer = utils.get_optimizer(FLAGS.optimizer, FLAGS.learning_rate)
 
     ## Main dgp object
-    dgp = DgpRff(like, data.num_examples, data.X.shape[1], data.Y.shape[1], FLAGS.nl, FLAGS.n_rff, FLAGS.df, FLAGS.kernel_type, FLAGS.kernel_arccosine_degree, FLAGS.is_ard, FLAGS.feed_forward, FLAGS.q_Omega_fixed, FLAGS.theta_fixed, FLAGS.learn_Omega)
+    dgp = DgpRff(like, data.num_examples, data.X.shape[1], data.Y.shape[1], FLAGS.nl, FLAGS.n_rff, FLAGS.df, FLAGS.kernel_type, FLAGS.kernel_arccosine_degree, FLAGS.is_ard, FLAGS.local_reparam, FLAGS.feed_forward, FLAGS.q_Omega_fixed, FLAGS.theta_fixed, FLAGS.learn_Omega)
 
     ## Learning
     dgp.learn(data, FLAGS.learning_rate, FLAGS.mc_train, FLAGS.batch_size, FLAGS.n_iterations, optimizer,
